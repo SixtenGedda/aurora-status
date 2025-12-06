@@ -12,3 +12,10 @@ compile_commands.json
 # Build directories
 build/
 
+# PlatformIO default folders (empty templates)
+include/
+lib/
+test/
+
+#lsp
+.cache/
