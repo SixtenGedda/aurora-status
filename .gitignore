@@ -7,6 +7,8 @@
 *.o
 *.elf
 *.bin
+compile_commands.json
 
 # Build directories
 build/
+
