@@ -19,3 +19,6 @@ test/
 
 #lsp
 .cache/
+
+#wifi password
+src/config.h
