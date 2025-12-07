@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <config.h>
@@ -19,40 +20,52 @@ void wifiSetup() {
   Serial.println();
 }
 
-void callApi() {
-  WiFiClientSecure *client = new WiFiClientSecure;
-  client->setInsecure();
+String callApi() {
+  WiFiClientSecure client;
+  client.setInsecure();
 
   HTTPClient https;
 
   Serial.println("Sending Aurora API request");
-  https.begin(*client, "https://services.swpc.noaa.gov/products/"
-                       "noaa-planetary-k-index-forecast.json");
+  https.begin(client, "https://services.swpc.noaa.gov/products/"
+                      "noaa-planetary-k-index-forecast.json");
 
   int httpCode = https.GET();
 
   if (httpCode == HTTP_CODE_OK) {
     Serial.println("Aurora API request successful");
-    String payload = https.getString();
+    String jsondata = https.getString();
     Serial.println("JSON data:");
-    Serial.println(payload);
+    Serial.println(jsondata);
+    return (jsondata);
+    https.end();
 
   } else {
     Serial.print("Aurora API request failed: ");
     Serial.println(https.errorToString(httpCode));
+    return (https.errorToString(httpCode));
+    https.end();
   }
+}
 
-  https.end();
-  delete client;
+String parseJson(String jsonData) {
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, jsonData);
+
+  String kp = doc[1][1];
+  Serial.print("First Kp value: ");
+  Serial.println(kp);
+  return kp;
 }
 
 void setup() {
   Serial.begin(115200);
+  delay(1000);
   wifiSetup();
-  callApi();
+  parseJson(callApi());
 }
 
 void loop() {
   Serial.println("Loop körs...");
-  delay(1000);
+  delay(10000);
 }
