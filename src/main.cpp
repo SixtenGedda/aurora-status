@@ -1,8 +1,24 @@
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
+#include <SPI.h>
 #include <WiFi.h>
+#include <Wire.h>
 #include <config.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+
+#define OLED_RESET -1
+#define SCREEN_ADDRESS 0x3C
+
+#define SDA_PIN 21
+#define SCL_PIN 22
+
+TwoWire myWire = TwoWire(0); // Eget I2C-objekt
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &myWire, OLED_RESET);
 
 void wifiSetup() {
   Serial.println();
@@ -20,6 +36,35 @@ void wifiSetup() {
   Serial.println();
 }
 
+void oledSetup() {
+  Serial.println("Starting OLED setup");
+
+  // Starta I2C med egna pins
+  myWire.begin(SDA_PIN, SCL_PIN);
+
+  // Initiera OLED
+  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;)
+      ; // loop forever
+  }
+
+  display.clearDisplay();
+}
+
+void updateOled(String kp) {
+  display.clearDisplay();
+
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+
+  display.setCursor((SCREEN_WIDTH - 3 * 6 * kp.length()) / 2,
+                    (SCREEN_HEIGHT - 7 * 4) / 2);
+  display.print("kp: " + kp);
+
+  display.display();
+}
+
 String callApi() {
   WiFiClientSecure client;
   client.setInsecure();
@@ -35,8 +80,6 @@ String callApi() {
   if (httpCode == HTTP_CODE_OK) {
     Serial.println("Aurora API request successful");
     String jsondata = https.getString();
-    Serial.println("JSON data:");
-    Serial.println(jsondata);
     return (jsondata);
     https.end();
 
@@ -53,7 +96,7 @@ String parseJson(String jsonData) {
   DeserializationError error = deserializeJson(doc, jsonData);
 
   String kp = doc[1][1];
-  Serial.print("First Kp value: ");
+  Serial.print("Kp value: ");
   Serial.println(kp);
   return kp;
 }
@@ -62,10 +105,18 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
   wifiSetup();
-  parseJson(callApi());
+  oledSetup();
+  updateOled(parseJson(callApi()));
 }
 
 void loop() {
-  Serial.println("Loop körs...");
+  Serial.println("Loop running");
+  delay(5000);
+  Serial.println("updating KP value");
+  display.ssd1306_command(SSD1306_DISPLAYON);
+  updateOled(parseJson(callApi()));
   delay(10000);
+  Serial.println("turning off display");
+  display.clearDisplay();
+  display.ssd1306_command(SSD1306_DISPLAYOFF);
 }
