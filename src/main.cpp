@@ -80,8 +80,8 @@ String callApi() {
   if (httpCode == HTTP_CODE_OK) {
     Serial.println("Aurora API request successful");
     String jsondata = https.getString();
-    return (jsondata);
     https.end();
+    return (jsondata);
 
   } else {
     Serial.print("Aurora API request failed: ");
